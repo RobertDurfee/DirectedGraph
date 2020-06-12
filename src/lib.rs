@@ -1,3 +1,3 @@
-pub mod directed_graph;
+pub mod labeled_multidigraph;
 
-pub use crate::directed_graph::{DirectedGraph, Vertex, VertexIndex, Edge, EdgeIndex};
+pub use crate::labeled_multidigraph::{LabeledMultidigraph, Vertex, VertexIndex, Edge, EdgeIndex};

@@ -17,33 +17,33 @@ pub type VertexIndex = usize;
 pub type EdgeIndex = usize;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct Edge<E> {
+pub struct Edge<EdgeLabel> {
     pub source: VertexIndex,
-    pub data: E,
+    pub label: EdgeLabel,
     pub target: VertexIndex,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct Vertex<V> {
-    pub data: V,
+pub struct Vertex<VertexLabel> {
+    pub label: VertexLabel,
 }
 
-pub struct DirectedGraph<V, E> {
-    vertex_to_index: Map<Rc<Vertex<V>>, VertexIndex>,
-    index_to_vertex: Map<VertexIndex, Rc<Vertex<V>>>,
-    edge_to_index: Map<Rc<Edge<E>>, EdgeIndex>,
-    index_to_edge: Map<EdgeIndex, Rc<Edge<E>>>,
+pub struct LabeledMultidigraph<VertexLabel, EdgeLabel> {
+    vertex_to_index: Map<Rc<Vertex<VertexLabel>>, VertexIndex>,
+    index_to_vertex: Map<VertexIndex, Rc<Vertex<VertexLabel>>>,
+    edge_to_index: Map<Rc<Edge<EdgeLabel>>, EdgeIndex>,
+    index_to_edge: Map<EdgeIndex, Rc<Edge<EdgeLabel>>>,
     edges_from: Map<VertexIndex, Set<EdgeIndex>>,
     edges_between: Map<(VertexIndex, VertexIndex), Set<EdgeIndex>>,
 }
 
-impl<V, E> DirectedGraph<V, E> 
+impl<VertexLabel, EdgeLabel> LabeledMultidigraph<VertexLabel, EdgeLabel> 
 where
-    V: Eq + Hash,
-    E: Eq + Hash,
+    VertexLabel: Eq + Hash,
+    EdgeLabel: Eq + Hash,
 {
-    pub fn new() -> DirectedGraph<V, E> {
-        DirectedGraph {
+    pub fn new() -> LabeledMultidigraph<VertexLabel, EdgeLabel> {
+        LabeledMultidigraph {
             vertex_to_index: Map::new(),
             index_to_vertex: Map::new(),
             edge_to_index: Map::new(),
@@ -53,7 +53,7 @@ where
         }
     }
 
-    pub fn add_vertex(&mut self, vertex: Vertex<V>) -> VertexIndex {
+    pub fn add_vertex(&mut self, vertex: Vertex<VertexLabel>) -> VertexIndex {
         if let Some(&vertex_index) = self.vertex_to_index.get(&vertex) {
             vertex_index
         } else {
@@ -65,11 +65,11 @@ where
         }
     }
 
-    pub fn contains_vertex(&self, vertex: &Vertex<V>) -> Option<VertexIndex> {
+    pub fn contains_vertex(&self, vertex: &Vertex<VertexLabel>) -> Option<VertexIndex> {
         self.vertex_to_index.get(vertex).map(|&vertex_index| vertex_index)
     }
 
-    pub fn get_vertex(&self, vertex_index: VertexIndex) -> &Vertex<V> {
+    pub fn get_vertex(&self, vertex_index: VertexIndex) -> &Vertex<VertexLabel> {
         self.index_to_vertex.get(&vertex_index).expect("vertex index out of bounds")
     }
 
@@ -95,7 +95,7 @@ where
         }
     }
 
-    pub fn add_edge(&mut self, edge: Edge<E>) -> EdgeIndex {
+    pub fn add_edge(&mut self, edge: Edge<EdgeLabel>) -> EdgeIndex {
         let edge_source = edge.source;
         let edge_target = edge.target;
         if self.index_to_vertex.get(&edge_source).is_none() {
@@ -125,11 +125,11 @@ where
         }
     }
 
-    pub fn contains_edge(&self, edge: &Edge<E>) -> Option<EdgeIndex> {
+    pub fn contains_edge(&self, edge: &Edge<EdgeLabel>) -> Option<EdgeIndex> {
         self.edge_to_index.get(edge).map(|&edge_index| edge_index)
     }
 
-    pub fn get_edge(&self, edge_index: EdgeIndex) -> &Edge<E> {
+    pub fn get_edge(&self, edge_index: EdgeIndex) -> &Edge<EdgeLabel> {
         self.index_to_edge.get(&edge_index).expect("edge index out of bounds")
     }
 
@@ -159,37 +159,37 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::directed_graph::{DirectedGraph, Vertex, Edge};
+    use crate::labeled_multidigraph::{LabeledMultidigraph, Vertex, Edge};
 
     #[test]
     fn test_1() {
-        let mut directed_graph = DirectedGraph::new();
-        let x1 = directed_graph.add_vertex(Vertex { data: "X1" });
-        assert_eq!(Some(x1), directed_graph.contains_vertex(&Vertex { data: "X1" }));
-        let x2 = directed_graph.add_vertex(Vertex { data: "X2" });
-        let x1_a_x2 = directed_graph.add_edge(Edge { source: x1, data: 'a', target: x2 });
-        assert_eq!(Some(x1_a_x2), directed_graph.contains_edge(&Edge { source: x1, data: 'a', target: x2 }));
+        let mut directed_graph = LabeledMultidigraph::new();
+        let x1 = directed_graph.add_vertex(Vertex { label: "X1" });
+        assert_eq!(Some(x1), directed_graph.contains_vertex(&Vertex { label: "X1" }));
+        let x2 = directed_graph.add_vertex(Vertex { label: "X2" });
+        let x1_a_x2 = directed_graph.add_edge(Edge { source: x1, label: 'a', target: x2 });
+        assert_eq!(Some(x1_a_x2), directed_graph.contains_edge(&Edge { source: x1, label: 'a', target: x2 }));
     }
 
     #[test]
     fn test_2() {
-        let mut directed_graph = DirectedGraph::new();
-        let x1 = directed_graph.add_vertex(Vertex { data: "X1" });
-        assert_eq!(&Vertex { data: "X1" }, directed_graph.get_vertex(x1));
-        let x2 = directed_graph.add_vertex(Vertex { data: "X2" });
-        let x1_a_x2 = directed_graph.add_edge(Edge { source: x1, data: 'a', target: x2 });
-        assert_eq!(&Edge { source: x1, data: 'a', target: x2 }, directed_graph.get_edge(x1_a_x2));
+        let mut directed_graph = LabeledMultidigraph::new();
+        let x1 = directed_graph.add_vertex(Vertex { label: "X1" });
+        assert_eq!(&Vertex { label: "X1" }, directed_graph.get_vertex(x1));
+        let x2 = directed_graph.add_vertex(Vertex { label: "X2" });
+        let x1_a_x2 = directed_graph.add_edge(Edge { source: x1, label: 'a', target: x2 });
+        assert_eq!(&Edge { source: x1, label: 'a', target: x2 }, directed_graph.get_edge(x1_a_x2));
     }
 
     #[test]
     fn test_3() {
-        let mut directed_graph = DirectedGraph::new();
-        let x1 = directed_graph.add_vertex(Vertex { data: "X1" });
-        let x2 = directed_graph.add_vertex(Vertex { data: "X2" });
-        let x3 = directed_graph.add_vertex(Vertex { data: "X3" });
-        let x1_a_x2 = directed_graph.add_edge(Edge { source: x1, data: 'a', target: x2 });
-        let x1_b_x2 = directed_graph.add_edge(Edge { source: x1, data: 'b', target: x2 });
-        let x1_a_x3 = directed_graph.add_edge(Edge { source: x1, data: 'a', target: x3 });
+        let mut directed_graph = LabeledMultidigraph::new();
+        let x1 = directed_graph.add_vertex(Vertex { label: "X1" });
+        let x2 = directed_graph.add_vertex(Vertex { label: "X2" });
+        let x3 = directed_graph.add_vertex(Vertex { label: "X3" });
+        let x1_a_x2 = directed_graph.add_edge(Edge { source: x1, label: 'a', target: x2 });
+        let x1_b_x2 = directed_graph.add_edge(Edge { source: x1, label: 'b', target: x2 });
+        let x1_a_x3 = directed_graph.add_edge(Edge { source: x1, label: 'a', target: x3 });
         assert_eq!(set![x2, x3], directed_graph.get_neighbors(x1).collect());
         assert_eq!(set![x1_a_x2, x1_b_x2, x1_a_x3], directed_graph.get_edges_from(x1).collect());
         assert_eq!(set![x1_a_x2, x1_b_x2], directed_graph.get_edges_between(x1, x2).collect());
