@@ -17,14 +17,14 @@ pub type EdgeIndex = usize;
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub struct Edge<E> {
-    source: VertexIndex,
-    data: E,
-    target: VertexIndex,
+    pub source: VertexIndex,
+    pub data: E,
+    pub target: VertexIndex,
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub struct Vertex<V> {
-    data: V,
+    pub data: V,
 }
 
 pub struct DirectedGraph<V, E> {
