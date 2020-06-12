@@ -2,6 +2,7 @@ use std::collections::HashMap as Map;
 use std::collections::HashSet as Set;
 use std::hash::Hash;
 use std::rc::Rc;
+use std::iter;
 
 macro_rules! set {
     ($($x:expr),*) => {{
@@ -68,16 +69,30 @@ where
         self.vertex_to_index.get(vertex).map(|&vertex_index| vertex_index)
     }
 
-    pub fn get_vertex(&self, vertex_index: VertexIndex) -> Option<&Vertex<V>> {
-        self.index_to_vertex.get(&vertex_index).map(|vertex| &**vertex)
+    pub fn get_vertex(&self, vertex_index: VertexIndex) -> &Vertex<V> {
+        self.index_to_vertex.get(&vertex_index).expect("vertex index out of bounds")
     }
 
-    pub fn get_neighbors<'a>(&'a self, vertex_index: VertexIndex) -> Option<impl Iterator<Item = VertexIndex> + 'a> {
-        self.edges_from.get(&vertex_index).map(|edges_from| edges_from.iter().map(move |edge_index| self.index_to_edge.get(edge_index).unwrap().target))
+    pub fn get_neighbors<'a>(&'a self, vertex_index: VertexIndex) -> Box<dyn Iterator<Item = VertexIndex> + 'a> {
+        if self.index_to_vertex.get(&vertex_index).is_none() {
+            panic!("vertex index out of bounds");
+        }
+        if let Some(edges_from) = self.edges_from.get(&vertex_index) {
+            Box::new(edges_from.iter().map(move |edge_index| self.index_to_edge.get(edge_index).unwrap().target))
+        } else {
+            Box::new(iter::empty())
+        }
     }
 
-    pub fn get_edges_from<'a>(&'a self, vertex_index: VertexIndex) -> Option<impl Iterator<Item = EdgeIndex> + 'a> {
-        self.edges_from.get(&vertex_index).map(|edges_from| edges_from.iter().map(|&edge| edge))
+    pub fn get_edges_from<'a>(&'a self, vertex_index: VertexIndex) -> Box<dyn Iterator<Item = EdgeIndex> + 'a> {
+        if self.index_to_vertex.get(&vertex_index).is_none() {
+            panic!("vertex index out of bounds");
+        }
+        if let Some(edges_from) = self.edges_from.get(&vertex_index) {
+            Box::new(edges_from.iter().map(|&edge_index| edge_index))
+        } else {
+            Box::new(iter::empty())
+        }
     }
 
     pub fn add_edge(&mut self, edge: Edge<E>) -> EdgeIndex {
@@ -114,20 +129,30 @@ where
         self.edge_to_index.get(edge).map(|&edge_index| edge_index)
     }
 
-    pub fn get_edge(&self, edge_index: EdgeIndex) -> Option<&Edge<E>> {
-        self.index_to_edge.get(&edge_index).map(|edge| &**edge)
+    pub fn get_edge(&self, edge_index: EdgeIndex) -> &Edge<E> {
+        self.index_to_edge.get(&edge_index).expect("edge index out of bounds")
     }
 
-    pub fn get_edges_between<'a>(&'a self, source_vertex_index: VertexIndex, target_vertex_index: VertexIndex) -> Option<impl Iterator<Item = EdgeIndex> + 'a> {
-        self.edges_between.get(&(source_vertex_index, target_vertex_index)).map(|edges_between| edges_between.iter().map(|&edge| edge))
+    pub fn get_edges_between<'a>(&'a self, source_vertex_index: VertexIndex, target_vertex_index: VertexIndex) -> Box<dyn Iterator<Item = EdgeIndex> + 'a> {
+        if self.index_to_vertex.get(&source_vertex_index).is_none() {
+            panic!("source vertex index out of bounds");
+        }
+        if self.index_to_vertex.get(&target_vertex_index).is_none() {
+            panic!("target vertex index out of bounds");
+        }
+        if let Some(edges_between) = self.edges_between.get(&(source_vertex_index, target_vertex_index)) {
+            Box::new(edges_between.iter().map(|&edge_index| edge_index))
+        } else {
+            Box::new(iter::empty())
+        }
     }
 
-    pub fn vertices<'a>(&'a self) -> impl Iterator<Item = VertexIndex> + 'a {
-        self.index_to_vertex.keys().map(|&vertex_index| vertex_index)
+    pub fn vertices<'a>(&'a self) -> Box<dyn Iterator<Item = VertexIndex> + 'a> {
+        Box::new(self.index_to_vertex.keys().map(|&vertex_index| vertex_index))
     }
 
-    pub fn edges<'a>(&'a self) -> impl Iterator<Item = EdgeIndex> + 'a {
-        self.index_to_edge.keys().map(|&edge_index| edge_index)
+    pub fn edges<'a>(&'a self) -> Box<dyn Iterator<Item = EdgeIndex> + 'a> {
+        Box::new(self.index_to_edge.keys().map(|&edge_index| edge_index))
     }
 }
 
@@ -150,10 +175,10 @@ mod tests {
     fn test_2() {
         let mut directed_graph = DirectedGraph::new();
         let x1 = directed_graph.add_vertex(Vertex { data: "X1" });
-        assert_eq!(Some(&Vertex { data: "X1" }), directed_graph.get_vertex(x1));
+        assert_eq!(&Vertex { data: "X1" }, directed_graph.get_vertex(x1));
         let x2 = directed_graph.add_vertex(Vertex { data: "X2" });
         let x1_a_x2 = directed_graph.add_edge(Edge { source: x1, data: 'a', target: x2 });
-        assert_eq!(Some(&Edge { source: x1, data: 'a', target: x2 }), directed_graph.get_edge(x1_a_x2));
+        assert_eq!(&Edge { source: x1, data: 'a', target: x2 }, directed_graph.get_edge(x1_a_x2));
     }
 
     #[test]
@@ -165,8 +190,8 @@ mod tests {
         let x1_a_x2 = directed_graph.add_edge(Edge { source: x1, data: 'a', target: x2 });
         let x1_b_x2 = directed_graph.add_edge(Edge { source: x1, data: 'b', target: x2 });
         let x1_a_x3 = directed_graph.add_edge(Edge { source: x1, data: 'a', target: x3 });
-        assert_eq!(set![x2, x3], directed_graph.get_neighbors(x1).unwrap().collect());
-        assert_eq!(set![x1_a_x2, x1_b_x2, x1_a_x3], directed_graph.get_edges_from(x1).unwrap().collect());
-        assert_eq!(set![x1_a_x2, x1_b_x2], directed_graph.get_edges_between(x1, x2).unwrap().collect());
+        assert_eq!(set![x2, x3], directed_graph.get_neighbors(x1).collect());
+        assert_eq!(set![x1_a_x2, x1_b_x2, x1_a_x3], directed_graph.get_edges_from(x1).collect());
+        assert_eq!(set![x1_a_x2, x1_b_x2], directed_graph.get_edges_between(x1, x2).collect());
     }
 }
