@@ -1,1 +1,1 @@
-pub mod directed_graph;
+pub mod directed_graph::{DirectedGraph, Vertex, Edge};
