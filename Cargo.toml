@@ -1,5 +1,5 @@
 [package]
-name = "directed_graph"
+name = "labeled_multidigraph"
 version = "0.1.0"
 authors = ["Robert Durfee <robert@durfee.io>"]
 edition = "2018"
