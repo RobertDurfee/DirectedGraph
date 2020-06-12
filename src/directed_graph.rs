@@ -16,14 +16,14 @@ macro_rules! set {
 pub type VertexIndex = usize;
 pub type EdgeIndex = usize;
 
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Edge<E> {
     pub source: VertexIndex,
     pub data: E,
     pub target: VertexIndex,
 }
 
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Vertex<V> {
     pub data: V,
 }
